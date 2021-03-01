@@ -1,27 +1,56 @@
 const dotenv = require('dotenv');
-const mysql = require('mysql');
 dotenv.config();
 
+const localDb = process.env.LOCAL_DB;
+const atlasDb = process.env.ATLAS_DB;
+
 class DatabaseService {
-    databaseConfig = {};
-    connection = null;
+    localDb = process.env.LOCAL_DB;
+    atlasDb = process.env.ATLAS_DB;
 
-    constructor(envObj) {
-        this.databaseConfig = {
-            host: envObj.DB_HOST,
-            user: envObj.DB_USER,
-            password: envObj.DB_PASSWORD,
-            database: envObj.DB_DATABASE,
-            port: envObj.DB_PORT,
-        }
+    constructor(db) {
+        this.db = db;
     }
 
-    connect(){
-        this.connection = mysql.createConnection(this.databaseConfig);
-        this.connection.connect(console.log);
-    }
 
-    getAll(){}
 }
 
-module.exports = new DatabaseService(process.env); // sington design pattern
+const mongoose = require('mongoose');
+const db = mongoose.connection;
+mongoose.connect(localDb, { useNewUrlParser: true, useUnifiedTopology: true });
+
+db.on('connected', function () {
+    console.log('Mongoose default connection open');
+});
+
+// If the connection throws an error
+db.on('error', function (err) {
+    console.log('Mongoose default connection error: ' + err);
+});
+
+// When the connection is disconnected
+db.on('disconnected', function () {
+    console.log('Mongoose default connection disconnected');
+});
+
+const Schema = mongoose.Schema;
+
+const postSchema = new Schema({
+    title: String,
+    content: String,
+    hidden: Boolean,
+    author: String,
+    views: Number
+})
+
+const Post = mongoose.model('Post', postSchema);
+
+const newPost = new Post({
+    title: 'this is a new post',
+    content: 'some content for my new Post',
+    hidden: false,
+    author: 'some_author',
+    views: 0
+})
+
+newPost.save().then(() => console.log('Saved a new Post to db'))
